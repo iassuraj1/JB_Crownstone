@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  :root {
+    --color-bg: #0B0B0B;
+    --color-card: #121212;
+    --color-gold: #D4AF37;
+    --color-gold-light: #F0C84A;
+    --color-profit: #10B981;
+    --color-loss: #EF4444;
+    --color-border: #1E1E1E;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: #E5E7EB;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0B0B0B;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2A2A2A;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #D4AF37;
+  }
+}
+
+@layer components {
+  /* Premium Button */
+  .btn-gold {
+    @apply bg-gold-gradient text-black font-semibold px-6 py-3 rounded-lg 
+           hover:shadow-gold-lg transition-all duration-300 hover:scale-105
+           text-sm tracking-wide;
+  }
+
+  .btn-outline-gold {
+    @apply border border-gold text-gold font-semibold px-6 py-3 rounded-lg
+           hover:bg-gold hover:text-black transition-all duration-300
+           text-sm tracking-wide;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-dark-card border border-dark-border rounded-xl p-6 shadow-card;
+  }
+
+  .card-hover {
+    @apply card hover:border-gold/30 hover:shadow-gold transition-all duration-300 cursor-pointer;
+  }
+
+  /* Text Utilities */
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #D4AF37, #F0C84A);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Dashboard specific */
+  .stat-card {
+    @apply bg-dark-card border border-dark-border rounded-xl p-5 
+           hover:border-gold/20 transition-all duration-300;
+  }
+
+  .nav-link {
+    @apply text-gray-400 hover:text-gold text-sm font-medium 
+           transition-colors duration-200 tracking-wide;
+  }
+
+  /* Input */
+  .input-dark {
+    @apply w-full bg-dark-surface border border-dark-border rounded-lg
+           px-4 py-3 text-white placeholder-gray-600
+           focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30
+           transition-all duration-200 text-sm;
+  }
+
+  /* Live badge */
+  .live-badge {
+    @apply flex items-center gap-1.5 text-xs text-profit font-medium;
+  }
+
+  .live-dot {
+    @apply w-2 h-2 rounded-full bg-profit animate-pulse;
+  }
+
+  /* Profit / Loss colors */
+  .text-profit {
+    @apply text-emerald-400;
+  }
+
+  .text-loss {
+    @apply text-red-400;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(18, 18, 18, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .border-gold-subtle {
+    border-color: rgba(212, 175, 55, 0.2);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
