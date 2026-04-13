@@ -55,6 +55,7 @@ const Dashboard = () => {
   
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedStrategy, setSelectedStrategy] = useState(null);
 
   const user = getUser();
 
@@ -67,7 +68,7 @@ const Dashboard = () => {
         axios.get('/api/mt5/account', { headers }),
         axios.get('/api/mt5/history', { headers }),
         axios.get('/api/mt5/positions', { headers }),
-        axios.post('/api/mt5/market', { symbols: ['EURUSD', 'GBPUSD', 'XAUUSD', 'BTCUSD'] }, { headers }),
+        axios.post('/api/mt5/market', { symbols: ['EURUSD', 'GBPUSD', 'XAUUSD', 'BTCUSD', 'NAS100', 'GBPJPY'] }, { headers }),
       ]);
 
       if (accRes.status === 'rejected' && accRes.reason?.response?.data?.error === 'MT5_CREDENTIALS_MISSING') {
@@ -150,17 +151,67 @@ const Dashboard = () => {
     return `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   };
 
-  // Convert history timeline based on equity if deals_history has 'profit' mapped
+  // Strategy symbol maps
+  const strategyMaps = {
+    'Titan': ['XAUUSD', 'NAS100', 'BTCUSD'],
+    'Orion': ['EURUSD', 'GBPUSD'],
+    'Alpha': ['EURUSD'],
+    'Scraber': ['GBPJPY']
+  };
+
+  const currentStrategySymbols = selectedStrategy ? strategyMaps[selectedStrategy] : null;
+
+  // Filter positions
+  const filteredPositions = currentStrategySymbols 
+    ? positions.filter(p => currentStrategySymbols.includes(p.symbol))
+    : positions;
+
+  // Filter market
+  const filteredMarket = currentStrategySymbols
+    ? market.filter(m => currentStrategySymbols.includes(m.symbol))
+    : market;
+    
+  // Filter history for analytics and equity curve
+  const filteredDeals = currentStrategySymbols
+    ? (history.deals_history || []).filter(d => currentStrategySymbols.includes(d.symbol))
+    : (history.deals_history || []);
+
+  // Convert history timeline based on equity
   let currentEquity = account?.equity || 0;
-  let runningBal = currentEquity - history.total_profit;
-  const equityData = history.deals_history?.map(deal => {
+  
+  // Calculate total profit for the filtered set to determine starting point
+  const filteredTotalProfit = filteredDeals.reduce((acc, deal) => acc + (deal.profit || 0), 0);
+  let runningBal = currentEquity - filteredTotalProfit;
+  
+  // Create equity data points
+  const equityData = [];
+  
+  // Always add a starting point at the beginning of the period
+  equityData.push({
+    date: 'Start',
+    equity: runningBal
+  });
+
+  filteredDeals.forEach(deal => {
     runningBal += deal.profit || 0;
     const d = new Date(deal.time);
-    return {
+    equityData.push({
       date: `${d.getDate()}/${d.getMonth()+1}`,
       equity: runningBal
-    };
-  }) || [];
+    });
+  });
+
+  // Always add the current equity as the final point
+  // For strategy view, we show the current balance + current floating profit of that strategy
+  const strategyFloatingProfit = filteredPositions.reduce((sum, p) => sum + (p.profit || 0), 0);
+  const strategyCurrentEquity = runningBal + strategyFloatingProfit;
+
+  if (equityData[equityData.length-1].date !== 'Current') {
+    equityData.push({
+      date: 'Now',
+      equity: strategyCurrentEquity
+    });
+  }
 
   // Calculate advanced Analytics based on history array
   let winCount = 0;
@@ -174,21 +225,23 @@ const Dashboard = () => {
   let grossProfit = 0;
   let grossLoss = 0;
 
-  (history.deals_history || []).forEach(deal => {
-    if (deal.profit > 0) {
+  filteredDeals.forEach(deal => {
+    const profit = deal.profit || 0;
+    if (profit > 0) {
       winCount++;
-      grossProfit += deal.profit;
+      grossProfit += profit;
     }
-    else if (deal.profit < 0) {
+    else if (profit < 0) {
       lossCount++;
-      grossLoss += Math.abs(deal.profit);
+      grossLoss += Math.abs(profit);
     }
     
-    if (!bestTrade || deal.profit > bestTrade) bestTrade = deal.profit;
-    if (!worstTrade || deal.profit < worstTrade) worstTrade = deal.profit;
+    if (!bestTrade || profit > bestTrade) bestTrade = profit;
+    if (!worstTrade || profit < worstTrade) worstTrade = profit;
 
-    if (deal.type === 'BUY') buyProfit += deal.profit;
-    else if (deal.type === 'SELL') sellProfit += deal.profit;
+    const type = deal.type || '';
+    if (type.includes('BUY')) buyProfit += profit;
+    else if (type.includes('SELL')) sellProfit += profit;
 
     const sym = deal.symbol || 'Balance';
     if (sym !== 'Balance') {
@@ -237,7 +290,10 @@ const Dashboard = () => {
             {['Dashboard', 'Open Trades', 'Trade History', 'Analytics', 'Settings'].map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => {
+                  setActiveTab(tab);
+                  if (tab === 'Dashboard') setSelectedStrategy(null);
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all duration-200 ${
                   activeTab === tab 
                     ? 'bg-gold/10 text-gold font-medium' 
@@ -301,6 +357,31 @@ const Dashboard = () => {
                 ))}
               </div>
 
+              {/* Strategy Switcher Tabs */}
+              <div className="flex flex-wrap gap-3">
+                {['Titan', 'Orion', 'Alpha', 'Scraber'].map((strat) => (
+                  <button
+                    key={strat}
+                    onClick={() => setSelectedStrategy(selectedStrategy === strat ? null : strat)}
+                    className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-300 border ${
+                      selectedStrategy === strat
+                        ? 'bg-gold text-black border-gold shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+                        : 'bg-[#111111] text-gray-500 border-[#1E1E1E] hover:border-gray-700 hover:text-gray-300'
+                    }`}
+                  >
+                    {strat}
+                  </button>
+                ))}
+                {selectedStrategy && (
+                  <button 
+                    onClick={() => setSelectedStrategy(null)}
+                    className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-red-500/50 hover:text-red-500 transition-colors"
+                  >
+                    Reset Filter
+                  </button>
+                )}
+              </div>
+
               {/* Middle Row (Chart & Analytics) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
@@ -335,16 +416,16 @@ const Dashboard = () => {
                     <div>
                       <div className="flex justify-between text-xs mb-2">
                         <span className="text-gray-400">Win Rate</span>
-                        <span className="text-blue-400 font-semibold">{history.win_rate}%</span>
+                        <span className="text-blue-400 font-semibold">{((winCount / (winCount + lossCount || 1)) * 100).toFixed(2)}%</span>
                       </div>
                       <div className="w-full bg-[#1A1A1A] rounded-full h-1.5">
-                        <div className="bg-blue-400 h-1.5 rounded-full" style={{ width: `${history.win_rate}%` }}></div>
+                        <div className="bg-blue-400 h-1.5 rounded-full" style={{ width: `${(winCount / (winCount + lossCount || 1)) * 100}%` }}></div>
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between text-xs mb-2">
                         <span className="text-gray-400">Total Profit</span>
-                        <span className="text-emerald-400 font-semibold">+{formatMoney(history.total_profit)}</span>
+                        <span className="text-emerald-400 font-semibold">+{formatMoney(grossProfit - grossLoss)}</span>
                       </div>
                       <div className="w-full bg-[#1A1A1A] rounded-full h-1.5">
                         <div className="bg-emerald-400 h-1.5 rounded-full" style={{ width: '100%' }}></div>
@@ -353,7 +434,7 @@ const Dashboard = () => {
                     <div>
                       <div className="flex justify-between text-xs mb-2">
                         <span className="text-gray-400">Trades Closed</span>
-                        <span className="text-white font-semibold">{history.trades_closed}</span>
+                        <span className="text-white font-semibold">{winCount + lossCount}</span>
                       </div>
                     </div>
                   </div>
@@ -366,7 +447,7 @@ const Dashboard = () => {
                 {/* Open Trades Table */}
                 <div className="lg:col-span-3 bg-[#111111] border border-[#1E1E1E] rounded-xl overflow-hidden">
                   <div className="p-5 border-b border-[#1E1E1E]">
-                    <h3 className="text-white text-sm font-semibold uppercase tracking-wider">Open Trades ({positions.length})</h3>
+                    <h3 className="text-white text-sm font-semibold uppercase tracking-wider">Open Trades ({filteredPositions.length})</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
@@ -380,7 +461,7 @@ const Dashboard = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#1A1A1A]">
-                        {positions.map(pos => (
+                        {filteredPositions.map(pos => (
                           <tr key={pos.ticket} className="hover:bg-[#161616] transition-colors">
                             <td className="px-5 py-3 text-white font-medium">{pos.symbol}</td>
                             <td className="px-5 py-3">
@@ -405,7 +486,7 @@ const Dashboard = () => {
                             </td>
                           </tr>
                         ))}
-                        {positions.length === 0 && (
+                        {filteredPositions.length === 0 && (
                           <tr>
                             <td colSpan="6" className="px-5 py-8 text-center text-gray-500">No open trades right now</td>
                           </tr>
@@ -415,13 +496,60 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Market Watch */}
-                <div className="bg-[#111111] border border-[#1E1E1E] rounded-xl overflow-hidden">
+                {/* Recent History Table (New) */}
+                <div className="lg:col-span-3 bg-[#111111] border border-[#1E1E1E] rounded-xl overflow-hidden">
+                  <div className="p-5 border-b border-[#1E1E1E] flex justify-between items-center">
+                    <h3 className="text-white text-sm font-semibold uppercase tracking-wider">
+                      {selectedStrategy ? `${selectedStrategy} History` : 'Recent History'}
+                    </h3>
+                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Last 10 trades</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-[#161616] text-[#888] text-xs uppercase font-medium">
+                        <tr>
+                          <th className="px-5 py-3">Symbol</th>
+                          <th className="px-5 py-3">Type</th>
+                          <th className="px-5 py-3">Time</th>
+                          <th className="px-5 py-3 text-right">Profit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1A1A1A]">
+                        {filteredDeals.slice().reverse().slice(0, 10).map((deal, idx) => (
+                          <tr key={deal.ticket || idx} className="hover:bg-[#161616] transition-colors">
+                            <td className="px-5 py-3 text-white font-medium">{deal.symbol || 'Balance'}</td>
+                            <td className="px-5 py-3">
+                              {deal.type ? (
+                                <span className={`px-2 py-1 rounded text-[10px] font-bold ${deal.type.includes('BUY') ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                                  {deal.type}
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td className="px-5 py-3 text-gray-500 text-xs">
+                              {new Date(deal.time).toLocaleDateString()} {new Date(deal.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className={`px-5 py-3 text-right font-semibold ${deal.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {deal.profit >= 0 ? '+' : ''}{deal.profit?.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredDeals.length === 0 && (
+                          <tr>
+                            <td colSpan="4" className="px-5 py-8 text-center text-gray-500">No history found for this strategy</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Market Watch (Existing - wrapped into a vertical column with history if needed, but for now I'll keep it as is) */}
+                <div className="bg-[#111111] border border-[#1E1E1E] rounded-xl overflow-hidden h-fit">
                   <div className="p-5 border-b border-[#1E1E1E]">
                     <h3 className="text-white text-sm font-semibold uppercase tracking-wider">Market Watch</h3>
                   </div>
                   <div className="divide-y divide-[#1A1A1A]">
-                    {market.map(tick => (
+                    {filteredMarket.map(tick => (
                       <div key={tick.symbol} className="p-4 hover:bg-[#161616] transition-colors flex justify-between items-center text-sm">
                         <span className="font-semibold text-white">{tick.symbol}</span>
                         <div className="text-right">
