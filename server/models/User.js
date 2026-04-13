@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema({
     login: { type: Number },
     password: { type: String, select: false },
     server: { type: String }
+  },
+  isAlgoEnabled: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

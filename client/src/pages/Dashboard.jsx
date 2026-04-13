@@ -56,6 +56,8 @@ const Dashboard = () => {
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedStrategy, setSelectedStrategy] = useState(null);
+  const [isAlgoEnabled, setIsAlgoEnabled] = useState(false);
+  const [togglingAlgo, setTogglingAlgo] = useState(false);
 
   const user = getUser();
 
@@ -91,11 +93,39 @@ const Dashboard = () => {
     }
   }, [getToken]);
 
+  const fetchAlgoStatus = useCallback(async () => {
+    try {
+      const token = getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get('/api/algo-status', { headers });
+      setIsAlgoEnabled(res.data.isAlgoEnabled);
+    } catch (e) {
+      console.error('Failed to fetch algo status:', e);
+    }
+  }, [getToken]);
+
   useEffect(() => {
     fetchData();
+    fetchAlgoStatus();
     const pollInterval = setInterval(fetchData, 3000); // 3 second polling
     return () => clearInterval(pollInterval);
-  }, [fetchData]);
+  }, [fetchData, fetchAlgoStatus]);
+
+  const handleToggleAlgo = async () => {
+    if (togglingAlgo) return;
+    setTogglingAlgo(true);
+    try {
+      const token = getToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.post('/api/algo-toggle', {}, { headers });
+      setIsAlgoEnabled(res.data.isAlgoEnabled);
+    } catch (e) {
+      console.error('Failed to toggle algo:', e);
+      alert('Failed to update Algo Trading status');
+    } finally {
+      setTogglingAlgo(false);
+    }
+  };
 
   const handleLogout = () => {
     clearAuth();
@@ -320,8 +350,37 @@ const Dashboard = () => {
           <div className="text-xl font-medium tracking-tight text-white">{activeTab}</div>
           
           <div className="flex items-center gap-6">
+            {/* Algo Trading Toggle */}
+            <div className="flex items-center gap-3">
+              <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isAlgoEnabled ? 'text-emerald-500' : 'text-gray-500'}`}>
+                Algo Trading
+              </span>
+              <button 
+                onClick={handleToggleAlgo}
+                disabled={togglingAlgo}
+                className={`relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none flex items-center p-1 ${
+                  isAlgoEnabled ? 'bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-[#1A1A1A] border border-[#222]'
+                }`}
+              >
+                <div className={`w-4 h-4 rounded-full transition-all duration-300 flex items-center justify-center ${
+                  isAlgoEnabled 
+                    ? 'translate-x-6 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
+                    : 'translate-x-0 bg-gray-600'
+                }`}>
+                  {togglingAlgo && (
+                    <div className="w-2 h-2 border border-t-transparent border-white rounded-full animate-spin" />
+                  )}
+                </div>
+                {isAlgoEnabled && (
+                  <div className="absolute right-7 w-1 h-1 rounded-full bg-emerald-500 animate-ping" />
+                )}
+              </button>
+            </div>
+
+            <div className="w-px h-6 bg-[#1E1E1E]" />
+
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className={`w-2 h-2 rounded-full ${isAlgoEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-500 shadow-sm'}`} />
               <span className="text-emerald-500 text-xs font-semibold tracking-wide uppercase">Connected</span>
             </div>
             <div className="w-px h-6 bg-[#1E1E1E]" />
