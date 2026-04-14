@@ -193,17 +193,17 @@ const Dashboard = () => {
 
   // Filter positions
   const filteredPositions = currentStrategySymbols 
-    ? positions.filter(p => currentStrategySymbols.includes(p.symbol))
+    ? positions.filter(p => currentStrategySymbols.some(s => p.symbol?.toUpperCase().includes(s.toUpperCase())))
     : positions;
 
   // Filter market
   const filteredMarket = currentStrategySymbols
-    ? market.filter(m => currentStrategySymbols.includes(m.symbol))
+    ? market.filter(m => currentStrategySymbols.some(s => m.symbol?.toUpperCase().includes(s.toUpperCase())))
     : market;
     
   // Filter history for analytics and equity curve
   const filteredDeals = currentStrategySymbols
-    ? (history.deals_history || []).filter(d => currentStrategySymbols.includes(d.symbol))
+    ? (history.deals_history || []).filter(d => currentStrategySymbols.some(s => d.symbol?.toUpperCase().includes(s.toUpperCase())))
     : (history.deals_history || []);
 
   // Convert history timeline based on equity
