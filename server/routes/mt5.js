@@ -5,21 +5,7 @@ const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
 const { encrypt, decrypt } = require('../utils/encryption');
 
-const PYTHON_API_URL = "https://ebook-tramadol-ensures-russell.trycloudflare.com";
-router.get("/data", async (req, res) => {
-  try {
-    const response = await axios.get(`${PYTHON_API_URL}/full-data`);
-
-    res.json(response.data);
-
-  } catch (error) {
-    console.error("MT5 Error:", error.message);
-
-    res.status(500).json({
-      message: "Failed to fetch MT5 data"
-    });
-  }
-});
+const PYTHON_API_URL = process.env.PYTHON_API_URL || 'http://localhost:8000';
 
 // Set MT5 credentials
 router.post('/credentials', protect, async (req, res, next) => {
