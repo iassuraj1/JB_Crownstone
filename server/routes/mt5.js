@@ -391,7 +391,13 @@ router.post('/mt5/close', protect, async (req, res, next) => {
 // Close all positions
 router.post('/mt5/close_all', protect, async (req, res, next) => {
   try {
-    const result = await axios.post(`${PYTHON_API_URL}/close_all`);
+    const { tickets } = req.body || {};
+    const payload = {};
+    if (Array.isArray(tickets) && tickets.length > 0) {
+      payload.tickets = tickets;
+    }
+
+    const result = await axios.post(`${PYTHON_API_URL}/close_all`, payload);
     res.json(result.data);
   } catch (error) {
     next(error);

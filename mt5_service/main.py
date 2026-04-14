@@ -137,7 +137,7 @@
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import MetaTrader5 as mt5
 from datetime import datetime, timedelta
 
@@ -159,6 +159,10 @@ class SymbolRequest(MT5Credentials):
 
 class CloseTradeRequest(BaseModel):
     ticket: int
+
+
+class CloseAllRequest(BaseModel):
+    tickets: List[int] = []
 
 
 # -----------------------------
@@ -372,23 +376,29 @@ def api_close_position(req: CloseTradeRequest):
 
 
 @app.post("/close_all")
-def api_close_all():
+def api_close_all(req: Optional[CloseAllRequest] = None):
     if not mt5.initialize(): 
          raise HTTPException(status_code=500, detail="Terminal connection failed")
 
-    positions = mt5.positions_get()
-    if not positions:
+    tickets = req.tickets if req and req.tickets else None
+    if tickets is None:
+        positions = mt5.positions_get()
+        if not positions:
+            return {"status": "success", "message": "No positions to close", "closed": 0}
+        tickets = [pos.ticket for pos in positions]
+
+    if not tickets:
         return {"status": "success", "message": "No positions to close", "closed": 0}
 
     results = []
-    for pos in positions:
-        res = execute_close(pos.ticket)
+    for ticket in tickets:
+        res = execute_close(ticket)
         results.append(res)
 
     success_count = len([r for r in results if r["status"] == "success"])
     return {
         "status": "success", 
-        "total": len(positions), 
+        "total": len(tickets), 
         "closed": success_count,
         "details": results
     }

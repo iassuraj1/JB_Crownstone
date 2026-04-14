@@ -55,6 +55,7 @@ const Dashboard = () => {
   
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [closingAll, setClosingAll] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState(null);
   const [isAlgoEnabled, setIsAlgoEnabled] = useState(false);
   const [togglingAlgo, setTogglingAlgo] = useState(false);
@@ -107,7 +108,7 @@ const Dashboard = () => {
   useEffect(() => {
     fetchData();
     fetchAlgoStatus();
-    const pollInterval = setInterval(fetchData, 3000); // 3 second polling
+    const pollInterval = setInterval(fetchData, 1000); // 1 second polling
     return () => clearInterval(pollInterval);
   }, [fetchData, fetchAlgoStatus]);
 
@@ -155,24 +156,26 @@ const Dashboard = () => {
   };
 
   const handleCloseAllTrades = async () => {
-    if (positions.length === 0) return;
-    if (!window.confirm(`Are you sure you want to close ALL ${positions.length} active trades?`)) return;
-    
-    setLoading(true); // show full loader for bulk operation
+    const tickets = filteredPositions.map(p => p.ticket);
+    if (tickets.length === 0) return;
+    if (!window.confirm(`Are you sure you want to close ALL ${tickets.length} visible trades?`)) return;
+
+    setClosingAll(true);
     try {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
-      const res = await axios.post('/api/mt5/close_all', {}, { headers });
-      
+      const res = await axios.post('/api/mt5/close_all', { tickets }, { headers });
+
       if (res.data.status === 'success') {
-        fetchData(); // refresh everything
+        await fetchData(); // refresh everything
       } else {
         alert(res.data.message || 'Failed to close some trades');
       }
     } catch (e) {
       console.error(e);
+      alert('Error closing all trades. Please try again.');
     } finally {
-      setLoading(false);
+      setClosingAll(false);
     }
   };
 
@@ -505,8 +508,22 @@ const Dashboard = () => {
                 
                 {/* Open Trades Table */}
                 <div className="lg:col-span-3 bg-[#111111] border border-[#1E1E1E] rounded-xl overflow-hidden">
-                  <div className="p-5 border-b border-[#1E1E1E]">
+                  <div className="p-5 border-b border-[#1E1E1E] flex items-center justify-between gap-4">
                     <h3 className="text-white text-sm font-semibold uppercase tracking-wider">Open Trades ({filteredPositions.length})</h3>
+                    {filteredPositions.length > 0 && (
+                      <button
+                        onClick={handleCloseAllTrades}
+                        disabled={closingAll}
+                        className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all border border-red-500/20 ${closingAll ? 'bg-red-500/20 text-red-200 cursor-not-allowed' : 'bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white'}`}
+                      >
+                        {closingAll ? (
+                          <span className="flex items-center gap-2 justify-center">
+                            <span className="w-3 h-3 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                            Closing All...
+                          </span>
+                        ) : 'Close All Trades'}
+                      </button>
+                    )}
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
