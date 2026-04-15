@@ -4,7 +4,7 @@ import axios from 'axios'
 import './index.css'
 import App from './App.jsx'
 
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'https://jb-website-u9rj.onrender.com';
+axios.defaults.baseURL = 'http://localhost:3000'; // Change to your backend URL if different
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
