@@ -5,7 +5,7 @@ const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
 const { encrypt, decrypt } = require('../utils/encryption');
 
-const PYTHON_API_URL = "https://ebook-tramadol-ensures-russell.trycloudflare.com";
+const PYTHON_API_URL = "http://localhost:8000"; // Change to your Python API URL
 router.get("/data", async (req, res) => {
   try {
     const response = await axios.get(`${PYTHON_API_URL}/full-data`);
