@@ -57,8 +57,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [closingAll, setClosingAll] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState(null);
-  const [isAlgoEnabled, setIsAlgoEnabled] = useState(false);
-  const [togglingAlgo, setTogglingAlgo] = useState(false);
+
 
   const user = getUser();
 
@@ -94,39 +93,15 @@ const Dashboard = () => {
     }
   }, [getToken]);
 
-  const fetchAlgoStatus = useCallback(async () => {
-    try {
-      const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
-      const res = await axios.get('/api/algo-status', { headers });
-      setIsAlgoEnabled(res.data.isAlgoEnabled);
-    } catch (e) {
-      console.error('Failed to fetch algo status:', e);
-    }
-  }, [getToken]);
 
   useEffect(() => {
     fetchData();
-    fetchAlgoStatus();
+    
     const pollInterval = setInterval(fetchData, 1000); // 1 second polling
     return () => clearInterval(pollInterval);
-  }, [fetchData, fetchAlgoStatus]);
+  }, [fetchData]);
 
-  const handleToggleAlgo = async () => {
-    if (togglingAlgo) return;
-    setTogglingAlgo(true);
-    try {
-      const token = getToken();
-      const headers = { Authorization: `Bearer ${token}` };
-      const res = await axios.post('/api/algo-toggle', {}, { headers });
-      setIsAlgoEnabled(res.data.isAlgoEnabled);
-    } catch (e) {
-      console.error('Failed to toggle algo:', e);
-      alert('Failed to update Algo Trading status');
-    } finally {
-      setTogglingAlgo(false);
-    }
-  };
+
 
   const handleLogout = () => {
     clearAuth();
@@ -352,51 +327,7 @@ const Dashboard = () => {
         <header className="h-16 bg-[#111111]/80 backdrop-blur border-b border-[#1E1E1E] flex items-center justify-between px-6 z-10">
           <div className="text-xl font-medium tracking-tight text-white">{activeTab}</div>
           
-          <div className="flex items-center gap-6">
-            {/* Algo Trading Toggle */}
-            <div className="flex items-center gap-3">
-              <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isAlgoEnabled ? 'text-emerald-500' : 'text-gray-500'}`}>
-                Algo Trading
-              </span>
-              <button 
-                onClick={handleToggleAlgo}
-                disabled={togglingAlgo}
-                className={`relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none flex items-center p-1 ${
-                  isAlgoEnabled ? 'bg-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-[#1A1A1A] border border-[#222]'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded-full transition-all duration-300 flex items-center justify-center ${
-                  isAlgoEnabled 
-                    ? 'translate-x-6 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
-                    : 'translate-x-0 bg-gray-600'
-                }`}>
-                  {togglingAlgo && (
-                    <div className="w-2 h-2 border border-t-transparent border-white rounded-full animate-spin" />
-                  )}
-                </div>
-                {isAlgoEnabled && (
-                  <div className="absolute right-7 w-1 h-1 rounded-full bg-emerald-500 animate-ping" />
-                )}
-              </button>
-            </div>
-
-            <div className="w-px h-6 bg-[#1E1E1E]" />
-
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isAlgoEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-500 shadow-sm'}`} />
-              <span className="text-emerald-500 text-xs font-semibold tracking-wide uppercase">Connected</span>
-            </div>
-            <div className="w-px h-6 bg-[#1E1E1E]" />
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <div className="text-xs text-white uppercase tracking-wider font-semibold">{user?.name || 'Client'}</div>
-                <div className="text-[10px] text-gray-500">{account?.company || 'Broker'}</div>
-              </div>
-              <button onClick={handleLogout} className="p-2 hover:bg-[#1A1A1A] rounded-lg transition-colors text-gray-500 hover:text-red-400">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-              </button>
-            </div>
-          </div>
+          
         </header>
 
         {/* ─── SCROLLABLE DASHBOARD ─── */}
