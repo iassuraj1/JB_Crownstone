@@ -419,25 +419,25 @@ router.post('/mt5/close_all', protect, async (req, res, next) => {
 });
 
 // GET Algo Status
-router.get('/algo-status', protect, async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-    res.json({ isAlgoEnabled: user.isAlgoEnabled || false });
-  } catch (error) {
-    next(error);
-  }
-});
+// router.get('/algo-status', protect, async (req, res, next) => {
+//   try {
+//     const user = await User.findById(req.user.id);
+//     res.json({ isAlgoEnabled: user.isAlgoEnabled || false });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 // POST Algo Toggle
-router.post('/algo-toggle', protect, async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-    user.isAlgoEnabled = !user.isAlgoEnabled;
-    await user.save();
-    res.json({ isAlgoEnabled: user.isAlgoEnabled });
-  } catch (error) {
-    next(error);
-  }
-});
+// router.post('/algo-toggle', protect, async (req, res, next) => {
+//   try {
+//     const user = await User.findById(req.user.id);
+//     user.isAlgoEnabled = !user.isAlgoEnabled;
+//     await user.save();
+//     res.json({ isAlgoEnabled: user.isAlgoEnabled });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 module.exports = router;

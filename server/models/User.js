@@ -32,10 +32,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, select: false },
     server: { type: String }
   },
-  isAlgoEnabled: {
-    type: Boolean,
-    default: false
-  }
+  
 }, { timestamps: true });
 
 // Hash password before saving
