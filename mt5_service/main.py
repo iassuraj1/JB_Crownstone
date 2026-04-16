@@ -323,48 +323,6 @@ def get_history(creds: MT5Credentials):
         "trades_closed": trades_closed,
         "deals_history": equity_curve,
     }
-    
-    
-
-@app.get("/full-data")
-def get_full_data():
-    try:
-        # Connect MT5
-        if not mt5.initialize():
-            raise HTTPException(status_code=500, detail="MT5 not initialized")
-
-        account = mt5.account_info()
-        positions = mt5.positions_get()
-        
-        # Format account
-        account_data = {
-            "login": account.login,
-            "balance": account.balance,
-            "equity": account.equity,
-            "profit": account.profit,
-        } if account else {}
-
-        # Format positions
-        positions_data = []
-        if positions:
-            for pos in positions:
-                positions_data.append({
-                    "ticket": pos.ticket,
-                    "symbol": pos.symbol,
-                    "type": "BUY" if pos.type == mt5.POSITION_TYPE_BUY else "SELL",
-                    "volume": pos.volume,
-                    "profit": pos.profit,
-                })
-
-        return {
-            "account": account_data,
-            "positions": positions_data,
-            "history": {}
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 
 # -----------------------------

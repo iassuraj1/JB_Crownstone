@@ -70,7 +70,7 @@ const Dashboard = () => {
         axios.get('/api/mt5/account', { headers }),
         axios.get('/api/mt5/history', { headers }),
         axios.get('/api/mt5/positions', { headers }),
-        axios.post('/api/mt5/market', { symbols: ['EURUSD', 'GBPUSD', 'XAUUSD', 'BTCUSD', 'NAS100', 'GBPJPY'] }, { headers }),
+        axios.post('/api/mt5/market', { symbols: ['EURUSD', 'GBPUSD', 'USDCAD', 'XAUUSD', 'BTCUSD', 'NAS100', 'GBPJPY'] }, { headers }),
       ]);
 
       if (accRes.status === 'rejected' && accRes.reason?.response?.data?.error === 'MT5_CREDENTIALS_MISSING') {
@@ -162,7 +162,7 @@ const Dashboard = () => {
   // Strategy symbol maps
   const strategyMaps = {
     'Titan': ['XAUUSD', 'NAS100', 'BTCUSD'],
-    'Orion': ['EURUSD', 'GBPUSD'],
+    'Orion': ['EURUSD', 'GBPUSD', 'USDCAD'],
     'Alpha': ['EURUSD'],
     'Scraber': ['GBPJPY']
   };
@@ -171,17 +171,17 @@ const Dashboard = () => {
 
   // Filter positions
   const filteredPositions = currentStrategySymbols 
-    ? positions.filter(p => currentStrategySymbols.includes(p.symbol))
+    ? positions.filter(p => currentStrategySymbols.some(s => p.symbol?.toUpperCase().includes(s.toUpperCase())))
     : positions;
 
   // Filter market
   const filteredMarket = currentStrategySymbols
-    ? market.filter(m => currentStrategySymbols.includes(m.symbol))
+    ? market.filter(m => currentStrategySymbols.some(s => m.symbol?.toUpperCase().includes(s.toUpperCase())))
     : market;
     
   // Filter history for analytics and equity curve
   const filteredDeals = currentStrategySymbols
-    ? (history.deals_history || []).filter(d => currentStrategySymbols.includes(d.symbol))
+    ? (history.deals_history || []).filter(d => currentStrategySymbols.some(s => d.symbol?.toUpperCase().includes(s.toUpperCase())))
     : (history.deals_history || []);
 
   // Convert history timeline based on equity

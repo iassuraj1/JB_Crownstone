@@ -221,7 +221,7 @@ router.get('/assets', protect, async (req, res, next) => {
   try {
     const creds = await getPythonPayload(req.user.id);
     
-    const SYMBOLS = ['EURUSD', 'XAUUSD', 'BTCUSD', 'GBPUSD', 'USOIL']; // The dashboard default symbols
+    const SYMBOLS = ['EURUSD', 'XAUUSD', 'BTCUSD', 'GBPUSD', 'USDCAD', 'USOIL']; // The dashboard default symbols
     
     const payload = {
       ...creds,
@@ -327,7 +327,7 @@ router.get('/mt5/history', protect, async (req, res, next) => {
     const now = new Date();
     const mockEquity = [];
     let mockBal = 10000;
-    const symbols = ['EURUSD', 'GBPUSD', 'XAUUSD', 'BTCUSD', 'US30'];
+    const symbols = ['EURUSD', 'GBPUSD', 'USDCAD', 'XAUUSD', 'BTCUSD', 'US30'];
     let ticketBase = 500200;
     for (let i = 29; i >= 0; i--) {
         const d = new Date(now);
@@ -360,7 +360,7 @@ router.post('/mt5/market', protect, async (req, res, next) => {
   try {
     const creds = await getPythonPayload(req.user.id);
     // Use requested symbols or defaults
-    const symbols = req.body.symbols || ['EURUSD', 'GBPUSD', 'XAUUSD', 'BTCUSD'];
+    const symbols = req.body.symbols || ['EURUSD', 'GBPUSD', 'USDCAD', 'XAUUSD', 'BTCUSD'];
     const payload = { ...creds, symbols };
     const result = await axios.post(`${PYTHON_API_URL}/market`, payload);
     const marketTicks = result.data || [];
@@ -377,6 +377,7 @@ router.post('/mt5/market', protect, async (req, res, next) => {
        let bid = 1.0;
        if (sym === 'EURUSD') bid = 1.0850;
        if (sym === 'GBPUSD') bid = 1.2650;
+       if (sym === 'USDCAD') bid = 1.3550;
        if (sym === 'XAUUSD') bid = 2150.2;
        if (sym === 'BTCUSD') bid = 65000.0;
        const spread = bid * 0.0001; // small fake spread
