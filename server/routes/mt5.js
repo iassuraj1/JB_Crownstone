@@ -121,38 +121,40 @@ router.get('/trades', protect, async (req, res, next) => {
     const positions = positionsRes.data || [];
     const history = historyRes.data || { total_profit: 0, win_rate: 0, trades_closed: 0, deals_history: [] };
     
-    // Map positions to frontend trades
-    const activeTrades = positions.map(pos => ({
-      ticket: pos.ticket,
-      symbol: pos.symbol,
-      type: pos.type,
-      lots: pos.volume,
-      openPrice: pos.price_open,
-      currentPrice: pos.price_current,
-      profit: pos.profit,
-      openTime: new Date(pos.time * 1000).toISOString()
-    }));
-
-    // Build equity curve from history
-    let currentBalance = acc.balance;
-    let initialBalanceMock = currentBalance - history.total_profit;
-    let cumulative = initialBalanceMock;
-    
-    const formattedEquityCurve = history.deals_history.map(deal => {
-      cumulative += deal.profit;
-      return {
-        date: deal.time, // The dashboard uses `date` and `equity`
-        equity: cumulative
-      };
-    });
-
-    if (formattedEquityCurve.length === 0) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      formattedEquityCurve.push({ date: yesterday.toISOString(), equity: currentBalance });
-      formattedEquityCurve.push({ date: new Date().toISOString(), equity: currentBalance });
-    }
-
+    const symbols = ['EURUSD', 'GBPUSD', 'USDCAD'];
+    const strategies = symbols.map((symbol, index) => {
+      const symbolPositions = positions.filter(pos => pos.symbol === symbol);
+      const symbolDeals = history.deals_history.filter(deal => deal.symbol === symbol);
+      
+      // activeTrades
+      const activeTrades = symbolPositions.map(pos => ({
+        ticket: pos.ticket,
+        symbol: pos.symbol,
+        type: pos.type,
+        lots: pos.volume,
+        openPrice: pos.price_open,
+        currentPrice: pos.price_current,
+        profit: pos.profit,
+        openTime: new Date(pos.time * 1000).toISOString()
+      }));
+      
+      // equityCurve
+      let cumulative = acc.balance - symbolDeals.reduce((sum, d) => sum + d.profit, 0);
+      const formattedEquityCurve = symbolDeals.map(deal => {
+        cumulative += deal.profit;
+        return {
+          date: deal.time,
+          equity: cumulative
+        };
+      });
+      
+      if (formattedEquityCurve.length === 0) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        formattedEquityCurve.push({ date: yesterday.toISOString(), equity: acc.balance });
+        formattedEquityCurve.push({ date: new Date().toISOString(), equity: acc.balance });
+      }
+      
     const totalTrades = history.trades_closed + positions.length;
     let monthlyReturnPct = 0;
     if (initialBalanceMock > 0) {
@@ -164,16 +166,17 @@ router.get('/trades', protect, async (req, res, next) => {
       _id: '1',
       name: 'Live Account',
       description: `MT5 Live Trades via ${acc.company || 'Broker'}`,
-      equity: acc.equity,
-      totalTrades,
+        equity: acc.equity,
+        totalTrades,
       winRate: history.win_rate,
       floatingPL: acc.profit,
       activePositions: positions.length,
-      maxDrawdown: 5.2, // mock drawdown
+        maxDrawdown: 5.2, // mock drawdown
       monthlyReturn: parseFloat(monthlyReturnPct) || 0,
-      equityCurve: formattedEquityCurve,
-      activeTrades
-    };
+        equityCurve: formattedEquityCurve,
+        activeTrades
+      };
+    });
 
     res.json({ strategies: [strategy] }); // we return strategies payload since Dashboard maps strategies to Trades view
   } catch (error) {
@@ -182,37 +185,41 @@ router.get('/trades', protect, async (req, res, next) => {
     
     // MOCK DATA FALLBACK for empty state or dummy credentials
     const now = new Date();
-    const mockEquity = [];
-    let mockBal = 10000;
-    for (let i = 29; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        mockEquity.push({
-            date: d.toISOString(),
-            equity: mockBal
-        });
-        mockBal += (Math.random() * 400 - 100); 
-    }
-    
-    const mockStrategy = {
-      _id: '1',
-      name: 'Live Account',
-      description: `MT5 Live Trades via Pepperstone-Demo`,
-      equity: mockBal,
-      totalTrades: 164,
-      winRate: 68.4,
-      floatingPL: 2450.00,
-      activePositions: 3,
-      maxDrawdown: 5.2,
-      monthlyReturn: 14.2,
-      equityCurve: mockEquity,
-      activeTrades: [
-          { ticket: 101, symbol: 'EURUSD', type: 0, lots: 1.5, openPrice: 1.0850, currentPrice: 1.0900, profit: 750, openTime: new Date(now.getTime() - 86400000).toISOString() },
-          { ticket: 102, symbol: 'XAUUSD', type: 1, lots: 0.5, openPrice: 2150.0, currentPrice: 2140.0, profit: 500, openTime: new Date(now.getTime() - 40000000).toISOString() },
-          { ticket: 103, symbol: 'BTCUSD', type: 0, lots: 0.1, openPrice: 65000, currentPrice: 66200, profit: 1200, openTime: new Date(now.getTime() - 20000000).toISOString() }
-      ]
-    };
-    res.json({ strategies: [mockStrategy] });
+    const symbols = ['EURUSD', 'GBPUSD', 'USDCAD'];
+    const mockStrategies = symbols.map((symbol, index) => {
+      const mockEquity = [];
+      let mockBal = 10000;
+      for (let i = 29; i >= 0; i--) {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i);
+          mockEquity.push({
+              date: d.toISOString(),
+              equity: mockBal
+          });
+          mockBal += (Math.random() * 400 - 100); 
+      }
+      
+      const activeTrades = [
+          { ticket: 101 + index * 10, symbol: symbol, type: 0, lots: 1.5, openPrice: 1.0850, currentPrice: 1.0900, profit: 750, openTime: new Date(now.getTime() - 86400000).toISOString() },
+          { ticket: 102 + index * 10, symbol: symbol, type: 1, lots: 0.5, openPrice: 1.2650, currentPrice: 1.2600, profit: 500, openTime: new Date(now.getTime() - 40000000).toISOString() }
+      ];
+      
+      return {
+        _id: (index + 1).toString(),
+        name: symbol,
+        description: `${symbol} Strategy via Orion`,
+        equity: mockBal,
+        totalTrades: 164,
+        winRate: 68.4,
+        floatingPL: 2450.00,
+        activePositions: 2,
+        maxDrawdown: 5.2,
+        monthlyReturn: 14.2,
+        equityCurve: mockEquity,
+        activeTrades
+      };
+    });
+    res.json({ strategies: mockStrategies });
   }
 });
 

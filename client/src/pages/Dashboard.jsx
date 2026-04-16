@@ -70,7 +70,7 @@ const Dashboard = () => {
         axios.get('/api/mt5/account', { headers }),
         axios.get('/api/mt5/history', { headers }),
         axios.get('/api/mt5/positions', { headers }),
-        axios.post('/api/mt5/market', { symbols: ['EURUSD', 'GBPUSD', 'XAUUSD', 'BTCUSD', 'NAS100', 'GBPJPY'] }, { headers }),
+        axios.post('/api/mt5/market', { symbols: ['EURUSD', 'GBPUSD', 'USDCAD', 'XAUUSD', 'BTCUSD', 'NAS100', 'GBPJPY'] }, { headers }),
       ]);
 
       if (accRes.status === 'rejected' && accRes.reason?.response?.data?.error === 'MT5_CREDENTIALS_MISSING') {
@@ -162,7 +162,7 @@ const Dashboard = () => {
   // Strategy symbol maps
   const strategyMaps = {
     'Titan': ['XAUUSD', 'NAS100', 'BTCUSD'],
-    'Orion': ['EURUSD', 'GBPUSD'],
+    'Orion': ['EURUSD', 'GBPUSD', 'USDCAD'],
     'Alpha': ['EURUSD'],
     'Scraber': ['GBPJPY']
   };
